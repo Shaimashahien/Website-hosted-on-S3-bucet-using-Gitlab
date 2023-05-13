@@ -1,0 +1,37 @@
+stages: 
+    - build
+    - test
+    - deploy
+
+build website: 
+    stage: build
+    image: node:18-alpine
+    script:
+        - yarn install
+        - yarn lint
+        - yarn test
+        - yarn build
+    artifacts:
+        paths: 
+            - build
+
+test website:
+    image: node:18-alpine
+    stage: test
+    script:
+        - yarn global add serve
+        - apk add curl
+        - serve -s build &
+        - sleep 10
+        - curl http://localhost:3000 | grep "React App"
+
+deploy website:
+    stage: deploy
+    environment: deployment
+    image:
+        name: amazon/aws-cli:2.11.6
+        entrypoint: [""]
+    script: 
+        - aws --version
+        - aws s3 sync build s3://$AWS_S3_BUCKET --delete
+        - curl $CI_ENVIRONMENT_URL | grep "React App"
